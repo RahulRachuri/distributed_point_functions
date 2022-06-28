@@ -89,6 +89,17 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "multi_point_distributed_point_function",
+    srcs = ["multi_point_distributed_point_function.cc"],
+    hdrs = ["multi_point_distributed_point_function.h"],
+    deps = [
+        ":distributed_point_function",
+        ":distributed_point_function_cc_proto",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
 proto_library(
     name = "distributed_point_function_proto",
     srcs = ["distributed_point_function.proto"],

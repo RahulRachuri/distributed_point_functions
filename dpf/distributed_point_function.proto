@@ -170,3 +170,19 @@ message EvaluationContext {
   // otherwise it can be smaller. Ignored when `partial_evaluations` is empty.
   int32 partial_evaluations_level = 5;
 }
+
+message MpDpfParameters {
+  DpfParameters dpf_parameters = 1;
+  // Number of non-zero elements.
+  int64 number_points = 2;
+}
+
+message MpDpfKey {
+  // Initial seed at the first level.
+  Block seed = 1;
+  // Correction words for each level after expansion.
+  repeated DpfKey dpf_keys = 2;
+  // Party this DpfKey belongs to (0 or 1).
+  int32 party = 3;
+  // TODO: parameters, hash functions etc.
+}
