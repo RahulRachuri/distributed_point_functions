@@ -21,10 +21,12 @@ class Cuckoo {
   static uint64_t ComputeNumberOfBuckets(uint64_t number_inputs);
   absl::StatusOr<std::vector<std::vector<uint64_t>>> Hash(
       absl::Span<const absl::uint128> inputs) const;
-  absl::StatusOr<std::pair<std::vector<absl::uint128>, std::vector<uint8_t>>> HashCuckoo(
+  absl::StatusOr<std::tuple<std::vector<absl::uint128>, std::vector<uint64_t>, std::vector<uint8_t>>> HashCuckoo(
       absl::Span<const absl::uint128> inputs) const;
   absl::StatusOr<std::vector<std::vector<absl::uint128>>> HashSimple(
       absl::Span<const absl::uint128> inputs) const;
+
+  uint64_t GetNumBuckets() const {return number_buckets_;}
 
  private:
   const static uint64_t NUMBER_HASH_FUNCTIONS = 3;
