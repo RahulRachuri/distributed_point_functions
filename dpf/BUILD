@@ -202,7 +202,23 @@ cc_library(
     srcs = ["cuckoo.cc"],
     hdrs = ["cuckoo.h"],
     deps = [
+        ":distributed_point_function_cc_proto",
         ":aes_128_fixed_key_hash",
         ":status_macros",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
+        "@com_google_absl//absl/memory:memory",
+    ],
+)
+
+cc_test(
+    name = "cuckoo_test",
+    srcs = [
+        "cuckoo_test.cc",
+    ],
+    deps = [
+        ":cuckoo",
+        "@com_github_google_googletest//:gtest_main",
     ],
 )

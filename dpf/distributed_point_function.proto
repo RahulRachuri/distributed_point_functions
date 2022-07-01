@@ -186,3 +186,9 @@ message MpDpfKey {
   int32 party = 3;
   // TODO: parameters, hash functions etc.
 }
+
+message CuckooParameters {
+  uint64 number_inputs = 1;
+  uint64 number_buckets = 2;
+  repeated Block hash_functions_keys = 3;
+}
