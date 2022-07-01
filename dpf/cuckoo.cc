@@ -115,7 +115,7 @@ absl::StatusOr<std::vector<std::vector<absl::uint128>>> Cuckoo::HashSimple(
   return hash_table;
 }
 
-absl::StatusOr<std::vector<absl::uint128>> Cuckoo::HashCuckoo(
+absl::StatusOr<std::pair<std::vector<absl::uint128>, std::vector<uint8_t>>> Cuckoo::HashCuckoo(
     absl::Span<const absl::uint128> inputs) const {
   if (inputs.size() != number_inputs_) {
     return absl::InvalidArgumentError(
@@ -154,6 +154,7 @@ absl::StatusOr<std::vector<absl::uint128>> Cuckoo::HashCuckoo(
         // the bucket was free, so we can insert the item
         hash_table[hash] = item;
         hash_table_indices[hash] = index;
+        occupied_buckets[hash] = 1;
         break;
       }
       // the bucket was occupied, so we evict the item in the table and insert
@@ -167,7 +168,7 @@ absl::StatusOr<std::vector<absl::uint128>> Cuckoo::HashCuckoo(
     }
   }
 
-  return hash_table;
+  return std::make_pair(hash_table, occupied_buckets);
 }
 
 }  // namespace distributed_point_functions
