@@ -196,3 +196,13 @@ cc_test(
         "@com_google_absl//absl/numeric:int128",
     ],
 )
+
+cc_library(
+    name = "cuckoo",
+    srcs = ["cuckoo.cc"],
+    hdrs = ["cuckoo.h"],
+    deps = [
+        ":aes_128_fixed_key_hash",
+        ":status_macros",
+    ],
+)
