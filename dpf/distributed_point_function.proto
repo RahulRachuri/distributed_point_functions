@@ -174,7 +174,7 @@ message EvaluationContext {
 message MpDpfParameters {
   DpfParameters dpf_parameters = 1;
   // Number of non-zero elements.
-  int64 number_points = 2;
+  uint64 number_points = 2;
 }
 
 message MpDpfKey {
@@ -184,11 +184,15 @@ message MpDpfKey {
   repeated DpfKey dpf_keys = 2;
   // Party this DpfKey belongs to (0 or 1).
   int32 party = 3;
-  // TODO: parameters, hash functions etc.
+  // Parameters for the cuckoo hash table
+  CuckooParameters cuckoo_parameters = 4;
 }
 
 message CuckooParameters {
+  // Number of items to hash
   uint64 number_inputs = 1;
+  // Number of buckets in the hash table
   uint64 number_buckets = 2;
+  // Keys for the fixed-key-AES-based hash functions
   repeated Block hash_functions_keys = 3;
 }

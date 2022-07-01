@@ -94,9 +94,14 @@ cc_library(
     srcs = ["multi_point_distributed_point_function.cc"],
     hdrs = ["multi_point_distributed_point_function.h"],
     deps = [
+        ":cuckoo",
         ":distributed_point_function",
         ":distributed_point_function_cc_proto",
+        ":status_macros",
+        "@com_google_absl//absl/memory:memory",
+        "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

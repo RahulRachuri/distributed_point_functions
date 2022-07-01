@@ -1,9 +1,11 @@
 #ifndef DISTRIBUTED_POINT_FUNCTIONS_DPF_MULTI_POINT_DISTRIBUTED_POINT_FUNCTION_H_
 #define DISTRIBUTED_POINT_FUNCTIONS_DPF_MULTI_POINT_DISTRIBUTED_POINT_FUNCTION_H_
 
-#include <absl/status/statusor.h>
+#include "absl/status/statusor.h"
+#include "dpf/cuckoo.h"
 #include "dpf/distributed_point_function.h"
 #include "dpf/distributed_point_function.pb.h"
+#include <memory>
 
 namespace distributed_point_functions {
 
@@ -27,7 +29,10 @@ class MultiPointDistributedPointFunction {
   }
 
  private:
+  MultiPointDistributedPointFunction(const MpDpfParameters& parameters, std::unique_ptr<Cuckoo>&& cuckoo_context_);
+
   const MpDpfParameters parameters_;
+  std::unique_ptr<Cuckoo> cuckoo_context_;
   std::vector<DistributedPointFunction> single_point_dpfs_;
 };
 
