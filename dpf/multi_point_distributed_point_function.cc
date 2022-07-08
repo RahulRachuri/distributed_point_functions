@@ -25,6 +25,33 @@ MultiPointDistributedPointFunction::Create(const MpDpfParameters& parameters) {
 absl::StatusOr<std::pair<DpfKey, DpfKey>>
 MultiPointDistributedPointFunction::GenerateKeys(
     absl::Span<absl::uint128> alphas, absl::Span<const Value> betas) {
+  // Check validity of alphas
+  if (alphas.size() != parameters_.size()) {
+    return absl::InvalidArgumentError(
+        "`alphas` has to have the same size as `parameters` passed at "
+        "construction");
+  }
+  int log_domain_size = parameters_.log_domain_size();
+  if (log_domain_size < 128)
+      for (auto alpha_i : alphas) {
+          if (alpha_i >= (absl::uint128{1} << log_domain_size)) {
+            return absl::InvalidArgumentError(
+                "each `alpha` must be smaller than the output domain size");
+          }
+      }
+  }
+  // Check validity of betas
+  if (betas.size() != parameters_.size()) {
+    return absl::InvalidArgumentError(
+        "`betas` has to have the same size as `parameters` passed at "
+        "construction");
+  }
+  // for (int i = 0; i < static_cast<int>(parameters_.size()); ++i) {
+  //   absl::Status status = proto_validator_->ValidateValue(beta[i], i);
+  //   if (!status.ok()) {
+  //     return status;
+  //   }
+  // }
   // TODO
 
   DPF_ASSIGN_OR_RETURN(auto cuckoo_table, cuckoo_context_->HashCuckoo(alphas));
