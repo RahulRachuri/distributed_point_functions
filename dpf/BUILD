@@ -224,6 +224,10 @@ cc_test(
     ],
     deps = [
         ":cuckoo",
+        "//dpf/internal:status_matchers",
         "@com_github_google_googletest//:gtest_main",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/types:span",
     ],
 )

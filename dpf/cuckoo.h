@@ -2,6 +2,7 @@
 #define DISTRIBUTED_POINT_FUNCTIONS_DPF_CUCKOO_H_
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "absl/numeric/int128.h"
@@ -28,9 +29,9 @@ class Cuckoo {
 
   uint64_t GetNumBuckets() const {return number_buckets_;}
 
- private:
   const static uint64_t NUMBER_HASH_FUNCTIONS = 3;
 
+ private:
   Cuckoo(const Cuckoo&) = delete;
   Cuckoo& operator=(const Cuckoo&) = delete;
   Cuckoo(Cuckoo&&) = default;

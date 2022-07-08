@@ -10,6 +10,8 @@
 
 namespace distributed_point_functions {
 
+const uint64_t Cuckoo::NUMBER_HASH_FUNCTIONS;
+
 Cuckoo::Cuckoo(uint64_t number_inputs, uint64_t number_buckets,
                std::vector<Aes128FixedKeyHash>&& hash_functions)
     : number_inputs_(number_inputs),
