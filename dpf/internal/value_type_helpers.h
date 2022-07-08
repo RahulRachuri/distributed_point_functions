@@ -650,6 +650,9 @@ absl::StatusOr<int> BitsNeeded(const ValueType& value_type,
 absl::StatusOr<bool> ValueTypesAreEqual(const ValueType& lhs,
                                         const ValueType& rhs);
 
+// ValueType -> Value(0)
+absl::StatusOr<Value> MakeZero(const ValueType& value_type);
+
 }  // namespace dpf_internal
 }  // namespace distributed_point_functions
 

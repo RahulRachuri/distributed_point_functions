@@ -36,6 +36,9 @@ class Tuple {
   Tuple(const Tuple& t) = default;
   Tuple& operator=(const Tuple& t) = default;
 
+  // Create tuple containing zero values
+  static Tuple MakeZero();
+
   // Getters for the base tuple type.
   Base& value() { return value_; }
   const Base& value() const { return value_; }
@@ -43,6 +46,21 @@ class Tuple {
  private:
   Base value_;
 };
+
+template <typename T>
+struct ZeroMaker {
+  static T MakeZero() { return T(0); }
+};
+
+template <typename... T>
+struct ZeroMaker<Tuple<T...>> {
+  static Tuple<T...> MakeZero() { return Tuple<T...>::MakeZeroTuple(); }
+};
+
+template <typename... T>
+Tuple<T...> Tuple<T...>::MakeZero() {
+  return Tuple(ZeroMaker<T>::MakeZero()...);
+}
 
 namespace dpf_internal {
 

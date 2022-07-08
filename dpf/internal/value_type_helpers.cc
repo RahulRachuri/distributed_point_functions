@@ -154,5 +154,53 @@ absl::StatusOr<absl::uint128> ValueIntegerToUint128(const Value::Integer& in) {
       "Unknown value case for the given integer Value");
 }
 
+absl::StatusOr<Value> MakeZero(const ValueType_Tuple& tuple_type) {
+  Value value;
+  for (const auto& element_type : tuple_type.elements()) {
+    auto* new_element_value = value.mutable_tuple()->add_elements();
+    DPF_ASSIGN_OR_RETURN(*new_element_value, MakeZero(element_type));
+  }
+  return value;
+}
+
+Value_Integer MakeZeroValueInteger(bool small) {
+    Value_Integer int_value;
+    if (small) {
+        int_value.set_value_uint64(0);
+    } else {
+        int_value.mutable_value_uint128()->set_low(0);
+        int_value.mutable_value_uint128()->set_high(0);
+    }
+    return int_value;
+}
+
+absl::StatusOr<Value> MakeZero(const ValueType& value_type) {
+  switch (value_type.type_case()) {
+    case ValueType::kInteger: {
+      Value value;
+      *value.mutable_integer() =
+          MakeZeroValueInteger(value_type.integer().bitsize() <= 64);
+      return value;
+    }
+    case ValueType::kIntModN: {
+      Value value;
+      *value.mutable_int_mod_n() = MakeZeroValueInteger(
+          value_type.int_mod_n().base_integer().bitsize() <= 64);
+      return value;
+    }
+    case ValueType::kTuple:
+      return MakeZero(value_type.tuple());
+    case ValueType::kXorWrapper: {
+      Value value;
+      *value.mutable_xor_wrapper() = MakeZeroValueInteger(
+          value_type.int_mod_n().base_integer().bitsize() <= 64);
+      return value;
+    }
+    case ValueType::TYPE_NOT_SET:
+    default:
+      return absl::InvalidArgumentError("MakeZero: value_type has no type set");
+  }
+}
+
 }  // namespace dpf_internal
 }  // namespace distributed_point_functions

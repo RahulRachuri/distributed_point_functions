@@ -113,6 +113,14 @@ TYPED_TEST(ValueTypeIntegerTest, ValueConversionFailsIfValueOutOfRange) {
   }
 }
 
+TYPED_TEST(ValueTypeIntegerTest, MakeZero) {
+  const auto value_type = ValueTypeHelper<TypeParam>::ToValueType();
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero_value, MakeZero(value_type));
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero,
+                           ValueTypeHelper<TypeParam>::FromValue(zero_value));
+  ASSERT_EQ(zero, TypeParam(0));
+}
+
 template <typename T>
 class ValueTypeTupleTest : public testing::Test {};
 
@@ -239,6 +247,14 @@ TEST(ValueTypeTupleTest, TestFromBytesWithConcreteExampleForIntModN) {
   EXPECT_EQ(std::get<1>(tuple), expected_1);
 }
 
+TYPED_TEST(ValueTypeTupleTest, MakeZero) {
+  const auto value_type = ValueTypeHelper<typename TypeParam::Tuple>::ToValueType();
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero_value, MakeZero(value_type));
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero,
+                           ValueTypeHelper<typename TypeParam::Tuple>::FromValue(zero_value));
+  ASSERT_EQ(zero, TypeParam::Tuple::MakeZero());
+}
+
 template <typename T>
 class ValueTypeIntModNTest : public testing::Test {};
 using IntModNTypes = ::testing::Types<
@@ -338,6 +354,14 @@ TYPED_TEST(ValueTypeIntModNTest, ValueConversionFailsIfTooLargeForModulus) {
   EXPECT_THAT(ValueTypeHelper<TypeParam>::FromValue(value),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        testing::HasSubstr("is larger than kModulus")));
+}
+
+TYPED_TEST(ValueTypeIntModNTest, MakeZero) {
+  const auto value_type = ValueTypeHelper<TypeParam>::ToValueType();
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero_value, MakeZero(value_type));
+  DPF_ASSERT_OK_AND_ASSIGN(const auto zero,
+                           ValueTypeHelper<TypeParam>::FromValue(zero_value));
+  ASSERT_EQ(zero, TypeParam(0));
 }
 
 }  // namespace
