@@ -129,8 +129,6 @@ absl::StatusOr<std::vector<std::vector<absl::uint128>>> Cuckoo::HashSimple(
   return hash_table;
 }
 
-#include <iostream>
-
 absl::StatusOr<std::tuple<std::vector<absl::uint128>, std::vector<uint64_t>,
                           std::vector<uint8_t>>>
 Cuckoo::HashCuckoo(absl::Span<const absl::uint128> inputs) const {
@@ -138,9 +136,6 @@ Cuckoo::HashCuckoo(absl::Span<const absl::uint128> inputs) const {
     return absl::InvalidArgumentError(
         "Cuckoo::HashCuckoo -- Wrong number of inputs");
   }
-
-  std::cerr << "number buckets: " << number_buckets_ << "\n";
-  std::cerr << "number inputs: " << number_inputs_ << "\n";
 
   // create cuckoo hash table to store all inputs
   std::vector<absl::uint128> hash_table(number_buckets_);
