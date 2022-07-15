@@ -76,7 +76,7 @@ TEST_P(CuckooTest, TestHashCuckoo) {
                            cuckoo->HashCuckoo(absl::MakeSpan(inputs)));
   const auto& [cuckoo_table_items, cuckoo_table_indices,
                cuckoo_table_occupied] = cuckoo_table;
-  const auto number_buckets = cuckoo->GetNumBuckets();
+  const auto number_buckets = cuckoo->GetNumberBuckets();
   // check dimensions
   ASSERT_EQ(cuckoo_table_items.size(), number_buckets);
   ASSERT_EQ(cuckoo_table_indices.size(), number_buckets);

@@ -28,7 +28,9 @@ class Cuckoo {
   absl::StatusOr<std::vector<std::vector<absl::uint128>>> HashSimple(
       absl::Span<const absl::uint128> inputs) const;
 
-  uint64_t GetNumBuckets() const { return number_buckets_; }
+  const CuckooParameters& GetParameter() const { return parameters_; }
+  uint64_t GetNumberInputs() const { return parameters_.number_inputs(); }
+  uint64_t GetNumberBuckets() const { return parameters_.number_buckets(); }
 
   const static uint64_t NUMBER_HASH_FUNCTIONS = 3;
 
@@ -38,12 +40,11 @@ class Cuckoo {
   Cuckoo(Cuckoo&&) = default;
   Cuckoo& operator=(Cuckoo&&) = default;
 
-  Cuckoo(uint64_t number_inputs, uint64_t number_buckets,
+  Cuckoo(CuckooParameters parameters,
          std::vector<Aes128FixedKeyHash>&& hash_functions);
   uint64_t HashToBucket(uint64_t hash_function, absl::uint128 input) const;
 
-  uint64_t number_inputs_;
-  uint64_t number_buckets_;
+  CuckooParameters parameters_;
   std::vector<Aes128FixedKeyHash> hash_functions_;
 };
 
