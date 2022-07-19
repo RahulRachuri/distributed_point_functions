@@ -15,12 +15,12 @@ class MultiPointDistributedPointFunction {
   static absl::StatusOr<std::unique_ptr<MultiPointDistributedPointFunction>> Create(
       const MpDpfParameters& parameters);
 
-  absl::StatusOr<std::pair<DpfKey, DpfKey>> GenerateKeys(
+  absl::StatusOr<std::pair<MpDpfKey, MpDpfKey>> GenerateKeys(
       absl::Span<absl::uint128> alphas, absl::Span<const Value> betas);
 
   template <typename T>
   absl::StatusOr<std::vector<T>> EvaluateAt(
-      const DpfKey& key, int hierarchy_level,
+      const MpDpfKey& key, int hierarchy_level,
       absl::Span<const absl::uint128> evaluation_points) const;
 
   // Returns the DpfParameters of this DPF.

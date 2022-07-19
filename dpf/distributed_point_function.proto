@@ -180,7 +180,7 @@ message MpDpfParameters {
 message MpDpfKey {
   // Initial seed at the first level.
   Block seed = 1;
-  // Correction words for each level after expansion.
+  // Single point DPF keys
   repeated DpfKey dpf_keys = 2;
   // Party this DpfKey belongs to (0 or 1).
   int32 party = 3;
