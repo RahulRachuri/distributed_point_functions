@@ -47,7 +47,7 @@ class MpProtoValidator {
   // Getters.
   const MpDpfParameters& parameters() const { return parameters_; }
 
-  const ProtoValidator& proto_valid() const { return *proto_validator_; }
+  const ProtoValidator& GetProtoValidator() const { return *proto_validator_; }
 
  private:
   MpProtoValidator(MpDpfParameters parameters,

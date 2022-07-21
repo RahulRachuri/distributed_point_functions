@@ -39,9 +39,9 @@ absl::Status MpProtoValidator::ValidateMpParameters(
 // Returns OK on success, and INVALID_ARGUMENT otherwise.
 absl::Status MpProtoValidator::ValidateMpDpfKey(const MpDpfKey& key) const {
   // Check that numbe_points matches number of dpf_keys
-  if (parameters_.number_points() != key.dpf_keys_size()) {
+  if (key.cuckoo_parameters().number_buckets() != key.dpf_keys_size()) {
     return absl::InvalidArgumentError(
-        "number of dpf keys must be equal to number of points");
+        "number of dpf keys must be equal to number of buckets");
   }
 
   for (const auto& dpf_key : key.dpf_keys()) {

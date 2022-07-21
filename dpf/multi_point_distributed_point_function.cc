@@ -1,24 +1,34 @@
+#include "multi_point_distributed_point_function.h"
+
 #include <cmath>
 
 #include "absl/memory/memory.h"
-#include "multi_point_distributed_point_function.h"
 #include "status_macros.h"
 
 namespace distributed_point_functions {
 
 MultiPointDistributedPointFunction::MultiPointDistributedPointFunction(
-    const MpDpfParameters& parameters,
-    std::unique_ptr<Cuckoo>&& cuckoo_context_)
-    : parameters_(parameters), cuckoo_context_(std::move(cuckoo_context_)) {}
+    const MpDpfParameters& parameters, std::unique_ptr<Cuckoo>&& cuckoo_context,
+    std::unique_ptr<dpf_internal::MpProtoValidator>&& mp_proto_validator)
+    : parameters_(parameters),
+      cuckoo_context_(std::move(cuckoo_context)),
+      mp_proto_validator_(std::move(mp_proto_validator)) {}
 
 absl::StatusOr<std::unique_ptr<MultiPointDistributedPointFunction>>
 MultiPointDistributedPointFunction::Create(const MpDpfParameters& parameters) {
+  // Initialise cuckoo context. single_point_dpfs is inititalised in
+  // GenerateKeys().
   uint64_t number_inputs = parameters.number_points();
+
+  // Create mp_proto_validator and validate parameters.
+  DPF_ASSIGN_OR_RETURN(auto mp_proto_validator,
+                       dpf_internal::MpProtoValidator::Create(parameters));
+
   DPF_ASSIGN_OR_RETURN(auto cuckoo_parameters, Cuckoo::Sample(number_inputs));
   DPF_ASSIGN_OR_RETURN(auto cuckoo_context,
                        Cuckoo::CreateFromParameters(cuckoo_parameters));
   return absl::WrapUnique(new MultiPointDistributedPointFunction(
-      parameters, std::move(cuckoo_context)));
+      parameters, std::move(cuckoo_context), std::move(mp_proto_validator)));
 }
 
 absl::StatusOr<std::pair<MpDpfKey, MpDpfKey>>
@@ -32,7 +42,7 @@ MultiPointDistributedPointFunction::GenerateKeys(
   }
   int log_domain_size = parameters_.dpf_parameters().log_domain_size();
   if (log_domain_size < 128) {
-    for (auto alpha_i : alphas) {
+    for (const auto alpha_i : alphas) {
       if (alpha_i >= (absl::uint128{1} << log_domain_size)) {
         return absl::InvalidArgumentError(
             "each `alpha` must be smaller than the output domain size");
@@ -45,13 +55,12 @@ MultiPointDistributedPointFunction::GenerateKeys(
         "`betas` has to have the same size as `parameters` passed at "
         "construction");
   }
-  // for (int i = 0; i < static_cast<int>(parameters_.size()); ++i) {
-  //   absl::Status status = proto_validator_->ValidateValue(beta[i], i);
-  //   if (!status.ok()) {
-  //     return status;
-  //   }
-  // }
-  // TODO
+
+  const auto value_type = parameters_.dpf_parameters().value_type();
+  for (const auto& beta_i : betas) {
+    DPF_RETURN_IF_ERROR(mp_proto_validator_->GetProtoValidator().ValidateValue(
+        beta_i, value_type));
+  }
 
   DPF_ASSIGN_OR_RETURN(auto cuckoo_table, cuckoo_context_->HashCuckoo(alphas));
   const auto& [cuckoo_table_items, cuckoo_table_indices,
@@ -65,12 +74,10 @@ MultiPointDistributedPointFunction::GenerateKeys(
     return std::distance(std::begin(simple_htable[bucket_i]), iter);
   };
 
-  const auto num_buckets = cuckoo_context_->GetNumBuckets();
+  const auto num_buckets = cuckoo_context_->GetNumberBuckets();
 
   // std::vector<std::unique_ptr<DistributedPointFunction>> sp_dpfs;
   // sp_dpfs.reserve(num_buckets);
-
-  const auto value_type = parameters_.dpf_parameters().value_type();
 
   std::vector<DpfParameters> sp_dpf_params(num_buckets);
 
@@ -109,9 +116,12 @@ MultiPointDistributedPointFunction::GenerateKeys(
 
   MpDpfKey key_1;
   MpDpfKey key_2;
+  key_1.set_party(1);
+  key_2.set_party(2);
   *key_1.mutable_dpf_keys() = {std::begin(keys_1), std::end(keys_1)};
   *key_2.mutable_dpf_keys() = {std::begin(keys_2), std::end(keys_2)};
-  *key_1.mutable_cuckoo_parameters() = *cuckoo_context_;
+  *key_1.mutable_cuckoo_parameters() = cuckoo_context_->GetParameters();
+  *key_2.mutable_cuckoo_parameters() = cuckoo_context_->GetParameters();
   return std::make_pair(key_1, key_2);
 }
 

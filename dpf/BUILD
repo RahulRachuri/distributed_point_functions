@@ -102,6 +102,7 @@ cc_library(
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:span",
+        "//dpf/internal:mp_proto_validator",
     ],
 )
 
