@@ -1,7 +1,6 @@
-#include "absl/memory/memory.h"
-
 #include <cmath>
 
+#include "absl/memory/memory.h"
 #include "multi_point_distributed_point_function.h"
 #include "status_macros.h"
 
@@ -22,7 +21,7 @@ MultiPointDistributedPointFunction::Create(const MpDpfParameters& parameters) {
       parameters, std::move(cuckoo_context)));
 }
 
-absl::StatusOr<std::pair<DpfKey, DpfKey>>
+absl::StatusOr<std::pair<MpDpfKey, MpDpfKey>>
 MultiPointDistributedPointFunction::GenerateKeys(
     absl::Span<absl::uint128> alphas, absl::Span<const Value> betas) {
   // Check validity of alphas
@@ -107,6 +106,13 @@ MultiPointDistributedPointFunction::GenerateKeys(
     keys_1.push_back(std::move(keys.first));
     keys_2.push_back(std::move(keys.second));
   }
+
+  MpDpfKey key_1;
+  MpDpfKey key_2;
+  *key_1.mutable_dpf_keys() = {std::begin(keys_1), std::end(keys_1)};
+  *key_2.mutable_dpf_keys() = {std::begin(keys_2), std::end(keys_2)};
+  *key_1.mutable_cuckoo_parameters() = *cuckoo_context_;
+  return std::make_pair(key_1, key_2);
 }
 
 }  // namespace distributed_point_functions
