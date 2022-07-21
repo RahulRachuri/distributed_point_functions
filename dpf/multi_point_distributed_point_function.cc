@@ -81,14 +81,23 @@ MultiPointDistributedPointFunction::GenerateKeys(
 
   std::vector<DpfParameters> sp_dpf_params(num_buckets);
 
+  std::vector<DpfKey> keys_0;
   std::vector<DpfKey> keys_1;
-  std::vector<DpfKey> keys_2;
 
+  keys_0.reserve(num_buckets);
   keys_1.reserve(num_buckets);
-  keys_2.reserve(num_buckets);
+
+  std::vector<bool> non_empty_buckets(num_buckets, true);
 
   for (uint64_t bucket_i = 0; bucket_i < num_buckets; ++bucket_i) {
     *sp_dpf_params[bucket_i].mutable_value_type() = value_type;
+
+    if(simple_htable[bucket_i].empty()) {
+      non_empty_buckets[bucket_i] = false;
+      keys_0.emplace_back();
+      keys_1.emplace_back();
+      continue;
+    }
 
     sp_dpf_params[bucket_i].set_log_domain_size(static_cast<int32_t>(
         std::ceil(std::log2(simple_htable[bucket_i].size()))));
@@ -110,19 +119,21 @@ MultiPointDistributedPointFunction::GenerateKeys(
     }
 
     DPF_ASSIGN_OR_RETURN(auto keys, sp_dpf->GenerateKeys(a, b));
-    keys_1.push_back(std::move(keys.first));
-    keys_2.push_back(std::move(keys.second));
+    keys_0.push_back(std::move(keys.first));
+    keys_1.push_back(std::move(keys.second));
   }
 
+  MpDpfKey key_0;
   MpDpfKey key_1;
-  MpDpfKey key_2;
+  key_0.set_party(0);
   key_1.set_party(1);
-  key_2.set_party(2);
+  *key_0.mutable_dpf_keys() = {std::begin(keys_0), std::end(keys_0)};
   *key_1.mutable_dpf_keys() = {std::begin(keys_1), std::end(keys_1)};
-  *key_2.mutable_dpf_keys() = {std::begin(keys_2), std::end(keys_2)};
+  *key_0.mutable_cuckoo_parameters() = cuckoo_context_->GetParameters();
   *key_1.mutable_cuckoo_parameters() = cuckoo_context_->GetParameters();
-  *key_2.mutable_cuckoo_parameters() = cuckoo_context_->GetParameters();
-  return std::make_pair(key_1, key_2);
+  *key_0.mutable_non_empty_buckets() = {std::begin(non_empty_buckets), std::end(non_empty_buckets)};
+  *key_1.mutable_non_empty_buckets() = {std::begin(non_empty_buckets), std::end(non_empty_buckets)};
+  return std::make_pair(key_0, key_1);
 }
 
 }  // namespace distributed_point_functions

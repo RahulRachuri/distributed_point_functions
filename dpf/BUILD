@@ -106,6 +106,21 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "multi_point_distributed_point_function_test",
+    size = "medium",
+    srcs = ["multi_point_distributed_point_function_test.cc"],
+    deps = [
+        ":multi_point_distributed_point_function",
+        "//dpf/internal:status_matchers",
+        "@com_github_google_googletest//:gtest_main",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/utility",
+    ],
+)
+
 proto_library(
     name = "distributed_point_function_proto",
     srcs = ["distributed_point_function.proto"],

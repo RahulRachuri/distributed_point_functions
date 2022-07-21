@@ -184,6 +184,8 @@ message MpDpfKey {
   int32 party = 2;
   // Parameters for the cuckoo hash table
   CuckooParameters cuckoo_parameters = 3;
+  // Tracking non-empty buckets
+  repeated bool non_empty_buckets = 4;
 }
 
 message CuckooParameters {

@@ -22,6 +22,10 @@ absl::StatusOr<std::unique_ptr<MpProtoValidator>> MpProtoValidator::Create(
 // Returns OK on success, and INVALID_ARGUMENT otherwise.
 absl::Status MpProtoValidator::ValidateMpParameters(
     const MpDpfParameters& parameters) {
+  if (!parameters.has_dpf_parameters()) {
+    return absl::InvalidArgumentError(
+        "ValidateMpParameters: dpf parameters are required");
+  }
   DPF_RETURN_IF_ERROR(ProtoValidator::ValidateParameters(
       absl::MakeSpan(&parameters.dpf_parameters(), 1)));
 
@@ -29,7 +33,8 @@ absl::Status MpProtoValidator::ValidateMpParameters(
       parameters.number_points() >
           (1 << parameters.dpf_parameters().log_domain_size())) {
     return absl::InvalidArgumentError(
-        "number of points must be in [1, log_domain_size]");
+        "ValidateMpParameters: number of points must be in [1, "
+        "log_domain_size]");
   }
 
   return absl::OkStatus();
@@ -41,28 +46,33 @@ absl::Status MpProtoValidator::ValidateMpDpfKey(const MpDpfKey& key) const {
   // Check that numbe_points matches number of dpf_keys
   if (key.cuckoo_parameters().number_buckets() != key.dpf_keys_size()) {
     return absl::InvalidArgumentError(
-        "number of dpf keys must be equal to number of buckets");
+        "ValidateMpDpfKey: number of dpf keys must be equal to number of "
+        "buckets");
   }
 
-  for (const auto& dpf_key : key.dpf_keys()) {
-    DPF_RETURN_IF_ERROR(proto_validator_->ValidateDpfKey(dpf_key));
+  for (size_t i = 1; i < key.cuckoo_parameters().number_buckets(); ++i ) {
+    if(key.non_empty_buckets(i)) {
+    DPF_RETURN_IF_ERROR(proto_validator_->ValidateDpfKey(key.dpf_keys(i)));
+    }
   }
 
   // Check cuckoo parameters
   if (parameters_.number_points() != key.cuckoo_parameters().number_inputs()) {
     return absl::InvalidArgumentError(
-        "number of inputs in cuckoo params must be equal to number of points");
+        "ValidateMpDpfKey: number of inputs in cuckoo params must be equal to "
+        "number of points");
   }
 
   if (key.cuckoo_parameters().number_buckets() < parameters_.number_points()) {
     return absl::InvalidArgumentError(
-        "number of buckets in cuckoo params cannot be less than number of "
+        "ValidateMpDpfKey: number of buckets in cuckoo params cannot be less "
+        "than number of "
         "points");
   }
 
   if (key.cuckoo_parameters().hash_functions_keys_size() != 3) {
     return absl::InvalidArgumentError(
-        "number of hash functions must be equal to 3");
+        "ValidateMpDpfKey: number of hash functions must be equal to 3");
   }
 
   return absl::OkStatus();
