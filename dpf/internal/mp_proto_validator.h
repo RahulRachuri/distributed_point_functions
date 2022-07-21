@@ -30,8 +30,7 @@ class MpProtoValidator {
 
   // Checks the validity of `parameters`.
   // Returns OK on success, and INVALID_ARGUMENT otherwise.
-  static absl::Status ValidateMpParameters(
-      const MpDpfParameters& parameters);
+  static absl::Status ValidateMpParameters(const MpDpfParameters& parameters);
 
   // Checks that `key` is valid for the `parameters` passed at construction.
   // Returns OK on success, and INVALID_ARGUMENT otherwise.
@@ -51,13 +50,13 @@ class MpProtoValidator {
   const ProtoValidator& proto_valid() const { return *proto_validator_; }
 
  private:
-  MpProtoValidator(MpDpfParameters parameters, std::unique_ptr<ProtoValidator> proto_validator);
+  MpProtoValidator(MpDpfParameters parameters,
+                   std::unique_ptr<ProtoValidator> proto_validator);
 
   // The MpDpfParameters passed at construction.
   MpDpfParameters parameters_;
 
   std::unique_ptr<ProtoValidator> proto_validator_;
-
 };
 
 }  // namespace dpf_internal

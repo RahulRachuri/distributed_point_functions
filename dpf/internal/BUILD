@@ -101,6 +101,22 @@ cc_test(
 )
 
 cc_library(
+    name = "mp_proto_validator",
+    srcs = [
+        "mp_proto_validator.cc",
+    ],
+    hdrs = [
+        "mp_proto_validator.h",
+    ],
+    deps = [
+        "//dpf:status_macros",
+        "@com_google_absl//absl/status:statusor",
+        "//dpf:distributed_point_function_cc_proto",
+        "//dpf/internal:proto_validator",
+    ],
+)
+
+cc_library(
     name = "evaluate_prg_hwy",
     srcs = ["evaluate_prg_hwy.cc"],
     hdrs = ["evaluate_prg_hwy.h"],

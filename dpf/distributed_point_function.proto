@@ -178,14 +178,12 @@ message MpDpfParameters {
 }
 
 message MpDpfKey {
-  // Initial seed at the first level.
-  Block seed = 1;
   // Single point DPF keys
-  repeated DpfKey dpf_keys = 2;
+  repeated DpfKey dpf_keys = 1;
   // Party this DpfKey belongs to (0 or 1).
-  int32 party = 3;
+  int32 party = 2;
   // Parameters for the cuckoo hash table
-  CuckooParameters cuckoo_parameters = 4;
+  CuckooParameters cuckoo_parameters = 3;
 }
 
 message CuckooParameters {
