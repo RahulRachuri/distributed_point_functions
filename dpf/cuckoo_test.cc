@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "cuckoo.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -21,7 +23,6 @@
 #include "absl/numeric/int128.h"
 #include "absl/random/random.h"
 #include "absl/types/span.h"
-#include "cuckoo.h"
 #include "internal/status_matchers.h"
 
 namespace distributed_point_functions {

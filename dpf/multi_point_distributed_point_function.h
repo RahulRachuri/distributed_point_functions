@@ -18,7 +18,7 @@ class MultiPointDistributedPointFunction {
   Create(const MpDpfParameters& parameters);
 
   absl::StatusOr<std::pair<MpDpfKey, MpDpfKey>> GenerateKeys(
-      absl::Span<absl::uint128> alphas, absl::Span<const Value> betas);
+      absl::Span<const absl::uint128> alphas, absl::Span<const Value> betas);
 
   template <typename T>
   absl::StatusOr<std::vector<T>> EvaluateAt(
@@ -26,7 +26,12 @@ class MultiPointDistributedPointFunction {
       absl::Span<const absl::uint128> evaluation_points) const;
 
   // Returns the DpfParameters of this DPF.
-  inline const MpDpfParameters& parameters() const { return parameters_; }
+  const MpDpfParameters& parameters() const { return parameters_; }
+
+  void SetValueTypeRegistrationFunction(
+      std::function<absl::Status(DistributedPointFunction&)> f) {
+    value_type_registration_function_ = f;
+  }
 
  private:
   MultiPointDistributedPointFunction(
@@ -38,6 +43,8 @@ class MultiPointDistributedPointFunction {
   std::unique_ptr<Cuckoo> cuckoo_context_;
   std::vector<DistributedPointFunction> single_point_dpfs_;
   std::unique_ptr<dpf_internal::MpProtoValidator> mp_proto_validator_;
+  std::function<absl::Status(DistributedPointFunction&)>
+      value_type_registration_function_;
 };
 
 template <typename T>
@@ -68,7 +75,7 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
   DPF_ASSIGN_OR_RETURN(const auto hashes,
                        cuckoo_context_->Hash(evaluation_points));
   DPF_ASSIGN_OR_RETURN(const auto simple_htable,
-                       cuckoo_context_->HashSimple(evaluation_points));
+                       cuckoo_context_->HashSimpleDomain(1 << log_domain_size));
 
   const auto pos = [&simple_htable](auto bucket_i, auto item) {
     const auto iter = std::find(std::begin(simple_htable[bucket_i]),
@@ -100,23 +107,25 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
     {
       const auto hash = hashes[0][i];
       const auto& sp_key = key.dpf_keys(hash);
-      const auto pos_point = pos(hash, evaluation_points[i]);
+      const absl::uint128 pos_point = pos(hash, evaluation_points[i]);
 
-      DPF_ASSIGN_OR_RETURN(
-          output[i],
-          sp_dpfs[hash]->EvaluateAt(sp_key, 0, absl::MakeSpan(&pos_point, 1)));
+      DPF_ASSIGN_OR_RETURN(auto tmp,
+                           sp_dpfs[hash]->EvaluateAt<T>(
+                               sp_key, 0, absl::MakeSpan(&pos_point, 1)));
+      output[i] = tmp[0];
     }
 
     for (size_t j = 1; j < Cuckoo::NUMBER_HASH_FUNCTIONS; ++j) {
       const auto hash = hashes[j][i];
       const auto& sp_key = key.dpf_keys(hash);
-      const auto pos_point = pos(hash, evaluation_points[i]);
+      const absl::uint128 pos_point = pos(hash, evaluation_points[i]);
 
-      DPF_ASSIGN_OR_RETURN(
-          auto output_j,
-          sp_dpfs[hash]->EvaluateAt(sp_key, 0, absl::MakeSpan(&pos_point, 1)));
+      DPF_ASSIGN_OR_RETURN(auto tmp,
+                           sp_dpfs[hash]->EvaluateAt<T>(
+                               sp_key, 0, absl::MakeSpan(&pos_point, 1)));
 
-      output[i] += output_j;
+      output[i] = output[i] + tmp[0];
+      // output[i] += output_j;
     }
   }
 

@@ -1,10 +1,13 @@
+#include "cuckoo.h"
+
 #include <openssl/rand.h>
+
+#include <numeric>
 
 #include "absl/memory/memory.h"
 #include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/types/span.h"
-#include "cuckoo.h"
 #include "dpf/status_macros.h"
 
 namespace distributed_point_functions {
@@ -101,19 +104,20 @@ absl::StatusOr<std::unique_ptr<Cuckoo>> Cuckoo::CreateFromParameters(
 
 absl::StatusOr<std::vector<std::vector<uint64_t>>> Cuckoo::Hash(
     absl::Span<const absl::uint128> inputs) const {
-  const auto number_inputs = GetNumberInputs();
+  // const auto number_inputs = GetNumberInputs();
   const auto number_buckets = GetNumberBuckets();
-  if (inputs.size() != number_inputs) {
-    return absl::InvalidArgumentError("Cuckoo::Hash -- Wrong number of inputs");
-  }
+  // if (inputs.size() != number_inputs) {
+  //   return absl::InvalidArgumentError("Cuckoo::Hash -- Wrong number of
+  //   inputs");
+  // }
   // create a table to store hashes of all inputs
   std::vector<std::vector<uint64_t>> hashes(NUMBER_HASH_FUNCTIONS);
   // buffer to store intermediate values
-  std::vector<absl::uint128> tmp(number_inputs);
+  std::vector<absl::uint128> tmp(inputs.size());
   for (uint64_t hash_function_i = 0; hash_function_i < NUMBER_HASH_FUNCTIONS;
        ++hash_function_i) {
     // allocate enough space for hashes of all inputs
-    hashes[hash_function_i].resize(number_inputs);
+    hashes[hash_function_i].resize(inputs.size());
     // hash the inputs
     DPF_RETURN_IF_ERROR(
         hash_functions_[hash_function_i].Evaluate(inputs, absl::MakeSpan(tmp)));
@@ -136,7 +140,7 @@ absl::StatusOr<std::vector<std::vector<absl::uint128>>> Cuckoo::HashSimple(
         "Cuckoo::HashSimple -- Wrong number of inputs");
   }
 
-  // create hash table to store all inputs with repititions
+  // create hash table to store all inputs with repetitions
   std::vector<std::vector<absl::uint128>> hash_table(GetNumberBuckets());
   // compute all hashes of all inputs
   DPF_ASSIGN_OR_RETURN(auto hashes, Hash(inputs));
@@ -146,6 +150,63 @@ absl::StatusOr<std::vector<std::vector<absl::uint128>>> Cuckoo::HashSimple(
          ++hash_function_i) {
       hash_table[hashes[hash_function_i][input_j]].push_back(inputs[input_j]);
     }
+  }
+
+  return hash_table;
+}
+
+absl::StatusOr<std::vector<std::vector<absl::uint128>>>
+Cuckoo::HashSimpleDomain(uint64_t domain_size) const {
+  auto number_buckets = GetNumberBuckets();
+
+  // create hash table to store all inputs with repetitions
+  std::vector<std::vector<absl::uint128>> hash_table(number_buckets);
+
+  constexpr uint64_t BATCH_SIZE = 4096;
+  const uint64_t num_batches = domain_size / BATCH_SIZE;
+  const uint64_t remainder = domain_size % BATCH_SIZE;
+
+  std::vector<absl::uint128> hash_inputs(BATCH_SIZE);
+  std::vector<absl::uint128> hashes(BATCH_SIZE);
+  auto hash_to_bucket = [number_buckets](auto x) {
+    return absl::Uint128Low64(x) % number_buckets;
+  };
+
+  for (uint64_t n = 0; n + BATCH_SIZE <= domain_size; n += BATCH_SIZE) {
+    // prepare a batch of inputs
+    std::iota(std::begin(hash_inputs), std::end(hash_inputs), n);
+    for (uint64_t hash_function_i = 0; hash_function_i < NUMBER_HASH_FUNCTIONS;
+         ++hash_function_i) {
+      // hash the batch
+      DPF_RETURN_IF_ERROR(hash_functions_[hash_function_i].Evaluate(
+          absl::MakeSpan(hash_inputs), absl::MakeSpan(hashes)));
+      // put items into the corresponding buckets
+      for (uint64_t m = 0; m < BATCH_SIZE; ++m) {
+        const auto h = hash_to_bucket(hashes[m]);
+        hash_table[h].push_back(n + m);
+      }
+    }
+  }
+
+  // prepare the remaining inputs
+  const auto it_end = std::begin(hash_inputs) + remainder;
+  std::iota(std::begin(hash_inputs), it_end, num_batches * BATCH_SIZE);
+  for (uint64_t hash_function_i = 0; hash_function_i < NUMBER_HASH_FUNCTIONS;
+       ++hash_function_i) {
+    // hash the remaining inputs
+    DPF_RETURN_IF_ERROR(hash_functions_[hash_function_i].Evaluate(
+        absl::MakeSpan(hash_inputs.data(), remainder),
+        absl::MakeSpan(hashes.data(), remainder)));
+    // put items into the corresponding buckets
+    for (uint64_t n = num_batches * BATCH_SIZE, m = 0; m < remainder; ++m) {
+      auto h = hash_to_bucket(hashes[m]);
+      hash_table[h].push_back(n + m);
+    }
+  }
+
+  // sort the buckets
+  for (auto& bucket : hash_table) {
+    std::sort(std::begin(bucket), std::end(bucket));
   }
 
   return hash_table;
