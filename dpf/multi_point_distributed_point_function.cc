@@ -62,18 +62,19 @@ MultiPointDistributedPointFunction::GenerateKeys(
   const auto value_type = parameters_.dpf_parameters().value_type();
   for (const auto& beta_i : betas) {
     DPF_RETURN_IF_ERROR(mp_proto_validator_->GetProtoValidator().ValidateValue(
-        beta_i, value_type)); // Checks that beta is a value of value_type
+        beta_i, value_type));  // Checks that beta is a value of value_type
   }
 
-  DPF_ASSIGN_OR_RETURN(auto cuckoo_table, cuckoo_context_->HashCuckoo(alphas));
+  DPF_ASSIGN_OR_RETURN(const auto cuckoo_table, cuckoo_context_->HashCuckoo(alphas));
   const auto& [cuckoo_table_items, cuckoo_table_indices,
                cuckoo_table_occupied] = cuckoo_table;
-  DPF_ASSIGN_OR_RETURN(auto simple_htable,
+  DPF_ASSIGN_OR_RETURN(const auto simple_htable,
                        cuckoo_context_->HashSimpleDomain(1 << log_domain_size));
 
   auto pos = [&simple_htable](auto bucket_i, auto item) {
     auto it = std::lower_bound(std::begin(simple_htable[bucket_i]),
                                std::end(simple_htable[bucket_i]), item);
+    assert(it != std::end(simple_htable[bucket_i]));
     assert(*it == item);  // the item should be in this bucket
     return std::distance(std::begin(simple_htable[bucket_i]), it);
   };
@@ -121,9 +122,11 @@ MultiPointDistributedPointFunction::GenerateKeys(
     if (cuckoo_table_occupied[bucket_i]) {
       a = pos(bucket_i, cuckoo_table_items[bucket_i]);
       b = betas[cuckoo_table_indices[bucket_i]];
+      std::cerr << "bucket " << bucket_i << " (occupied): a = " << a << ", b = " << b.DebugString() << "\n";
     } else {
       a = 0;
       DPF_ASSIGN_OR_RETURN(b, dpf_internal::MakeZero(value_type));
+      std::cerr << "bucket " << bucket_i << " (not occupied): a = " << a << ", b = " << b.DebugString() << "\n";
     }
 
     DPF_ASSIGN_OR_RETURN(auto keys, sp_dpf->GenerateKeys(a, b));

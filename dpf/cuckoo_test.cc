@@ -200,6 +200,36 @@ TEST_P(CuckooTest, TestHashSimpleDomain) {
   ASSERT_EQ(num_items_in_hash_table, 3 * (1 << log_domain_size));
 }
 
+TEST_P(CuckooTest, TestCuckooMatchesSimpleDomain) {
+  const auto number_inputs = uint64_t(1) << GetParam();
+  const auto log_domain_size = 10;
+  auto cuckoo = create_cuckoo(number_inputs);
+
+  // To generate random numbers in the domain, we generate the entire domain and do a random shuffle
+  std::vector<absl::uint128> domain(1 << log_domain_size);
+  std::iota(std::begin(domain), std::end(domain), 0);
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(std::begin(domain), std::end(domain), g);
+
+  // Checking that every element in a cuckoo bucket exists in the corresponding bucket of HashSimpleDomain
+  DPF_ASSERT_OK_AND_ASSIGN(const auto hash_table,
+                           cuckoo->HashSimpleDomain(1 << log_domain_size));
+  DPF_ASSERT_OK_AND_ASSIGN(const auto cuckoo_table,
+                           cuckoo->HashCuckoo(absl::MakeSpan(domain.data(), number_inputs)));
+  const auto& [cuckoo_table_items, cuckoo_table_indices,
+               cuckoo_table_occupied] = cuckoo_table;
+  const auto number_buckets = cuckoo->GetNumberBuckets();
+
+  for(size_t i = 0; i < number_buckets; ++i) {
+    if(cuckoo_table_occupied[i]) {
+      ASSERT_TRUE(std::binary_search(std::begin(hash_table[i]), std::end(hash_table[i]), cuckoo_table_items[i]));
+    }
+  }
+
+
+}
+
 INSTANTIATE_TEST_SUITE_P(CuckooTestSuite, CuckooTest, testing::Range(5, 10));
 
 }  // namespace

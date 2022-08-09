@@ -78,10 +78,12 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
                        cuckoo_context_->HashSimpleDomain(1 << log_domain_size));
 
   const auto pos = [&simple_htable](auto bucket_i, auto item) {
-    const auto iter = std::find(std::begin(simple_htable[bucket_i]),
-                                std::end(simple_htable[bucket_i]), item);
+    const auto it = std::lower_bound(std::begin(simple_htable[bucket_i]),
+                                     std::end(simple_htable[bucket_i]), item);
+    assert(*it == item);
+    assert(it != std::end(simple_htable[bucket_i]));
 
-    return std::distance(std::begin(simple_htable[bucket_i]), iter);
+    return std::distance(std::begin(simple_htable[bucket_i]), it);
   };
 
   std::vector<DpfParameters> sp_dpf_params(num_buckets);
@@ -90,15 +92,21 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
 
   const auto value_type = parameters_.dpf_parameters().value_type();
   for (uint64_t bucket_i = 0; bucket_i < num_buckets; ++bucket_i) {
-    *sp_dpf_params[bucket_i].mutable_value_type() = value_type;
+    if (key.bucket_sizes(bucket_i) != 0) {
+      *sp_dpf_params[bucket_i].mutable_value_type() = value_type;
 
-    sp_dpf_params[bucket_i].set_log_domain_size(static_cast<int32_t>(
+      sp_dpf_params[bucket_i].set_log_domain_size(static_cast<int32_t>(
         std::ceil(std::log2(simple_htable[bucket_i].size()))));
 
-    DPF_ASSIGN_OR_RETURN(
+
+      DPF_ASSIGN_OR_RETURN(
         auto sp_dpf, DistributedPointFunction::Create(sp_dpf_params[bucket_i]));
 
-    sp_dpfs.push_back(std::move(sp_dpf));
+      sp_dpfs.push_back(std::move(sp_dpf));
+    } else {
+      // if the bucket is empty, we don't need an sp-dpf, so just fill this position with a nullptr
+      sp_dpfs.emplace_back();
+    }
   }
 
   std::vector<T> output(num_evaluation_points);
@@ -106,6 +114,7 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
   for (size_t i = 0; i < num_evaluation_points; ++i) {
     {
       const auto hash = hashes[0][i];
+      assert(sp_dpfs[hash] != nullptr);
       const auto& sp_key = key.dpf_keys(hash);
       const absl::uint128 pos_point = pos(hash, evaluation_points[i]);
 
@@ -117,6 +126,7 @@ absl::StatusOr<std::vector<T>> MultiPointDistributedPointFunction::EvaluateAt(
 
     for (size_t j = 1; j < Cuckoo::NUMBER_HASH_FUNCTIONS; ++j) {
       const auto hash = hashes[j][i];
+      assert(sp_dpfs[hash] != nullptr);
       const auto& sp_key = key.dpf_keys(hash);
       const absl::uint128 pos_point = pos(hash, evaluation_points[i]);
 
