@@ -73,7 +73,7 @@ TEST_P(CuckooTest, TestHashCuckoo) {
   const auto number_inputs = uint64_t(1) << GetParam();
   const auto inputs = gen_random_numbers(number_inputs);
   auto cuckoo = create_cuckoo(number_inputs);
-  DPF_ASSERT_OK_AND_ASSIGN(auto cuckoo_table,
+  DPF_ASSERT_OK_AND_ASSIGN(const auto cuckoo_table,
                            cuckoo->HashCuckoo(absl::MakeSpan(inputs)));
   const auto& [cuckoo_table_items, cuckoo_table_indices,
                cuckoo_table_occupied] = cuckoo_table;
@@ -104,6 +104,100 @@ TEST_P(CuckooTest, TestHashCuckoo) {
   ASSERT_TRUE(std::all_of(std::begin(found_inputs_in_table),
                           std::end(found_inputs_in_table),
                           [](auto x) { return x; }));
+}
+
+TEST_P(CuckooTest, TestHashSimpleDomain) {
+  const auto number_inputs = uint64_t(1) << GetParam();
+  const auto log_domain_size = 10;
+  auto cuckoo = create_cuckoo(number_inputs);
+  const auto number_buckets = cuckoo->GetNumberBuckets();
+
+  DPF_ASSERT_OK_AND_ASSIGN(const auto hash_table,
+                           cuckoo->HashSimpleDomain(1 << log_domain_size));
+  ASSERT_EQ(hash_table.size(), number_buckets);
+  for (const auto& bucket : hash_table) {
+    // Check that items inside each bucket are sorted
+    ASSERT_TRUE(std::is_sorted(std::begin(bucket), std::end(bucket)));
+  }
+
+  // Check that hashing is deterministic
+  DPF_ASSERT_OK_AND_ASSIGN(const auto hash_table2,
+                           cuckoo->HashSimpleDomain(1 << log_domain_size));
+  ASSERT_EQ(hash_table, hash_table2);
+
+  std::vector<absl::uint128> domain(1 << log_domain_size);
+  std::iota(std::begin(domain), std::end(domain), 0);
+
+  DPF_ASSERT_OK_AND_ASSIGN(const auto hashes,
+                           cuckoo->Hash(absl::MakeSpan(domain)));
+
+  for (uint64_t element = 0; element < 1 << log_domain_size; ++element) {
+    if (hashes[0][element] == hashes[1][element] &&
+        hashes[0][element] == hashes[2][element]) {
+      const auto hash = hashes[0][element];
+      const auto it_start = std::lower_bound(
+          std::begin(hash_table[hash]), std::end(hash_table[hash]), element);
+      const auto it_end = std::upper_bound(std::begin(hash_table[hash]),
+                                           std::end(hash_table[hash]), element);
+      ASSERT_NE(it_start, std::end(hash_table[hash]));
+      ASSERT_EQ(*it_start, element);
+      ASSERT_EQ(std::distance(it_start, it_end), 3);
+    } else if (hashes[0][element] == hashes[1][element]) {
+      const auto hash = hashes[0][element];
+      const auto it_start = std::lower_bound(
+          std::begin(hash_table[hash]), std::end(hash_table[hash]), element);
+      const auto it_end = std::upper_bound(std::begin(hash_table[hash]),
+                                           std::end(hash_table[hash]), element);
+      ASSERT_NE(it_start, std::end(hash_table[hash]));
+      ASSERT_EQ(*it_start, element);
+      ASSERT_EQ(std::distance(it_start, it_end), 2);
+
+      const auto hash_other = hashes[2][element];
+      ASSERT_TRUE(std::binary_search(std::begin(hash_table[hash_other]),
+                                     std::end(hash_table[hash_other]),
+                                     element));
+
+    } else if (hashes[0][element] == hashes[2][element]) {
+      const auto hash = hashes[0][element];
+      const auto it_start = std::lower_bound(
+          std::begin(hash_table[hash]), std::end(hash_table[hash]), element);
+      const auto it_end = std::upper_bound(std::begin(hash_table[hash]),
+                                           std::end(hash_table[hash]), element);
+      ASSERT_NE(it_start, std::end(hash_table[hash]));
+      ASSERT_EQ(*it_start, element);
+      ASSERT_EQ(std::distance(it_start, it_end), 2);
+
+      const auto hash_other = hashes[1][element];
+      ASSERT_TRUE(std::binary_search(std::begin(hash_table[hash_other]),
+                                     std::end(hash_table[hash_other]),
+                                     element));
+    } else if (hashes[1][element] == hashes[2][element]) {
+      const auto hash = hashes[1][element];
+      const auto it_start = std::lower_bound(
+          std::begin(hash_table[hash]), std::end(hash_table[hash]), element);
+      const auto it_end = std::upper_bound(std::begin(hash_table[hash]),
+                                           std::end(hash_table[hash]), element);
+      ASSERT_NE(it_start, std::end(hash_table[hash]));
+      ASSERT_EQ(*it_start, element);
+      ASSERT_EQ(std::distance(it_start, it_end), 2);
+
+      const auto hash_other = hashes[0][element];
+      ASSERT_TRUE(std::binary_search(std::begin(hash_table[hash_other]),
+                                     std::end(hash_table[hash_other]),
+                                     element));
+    } else {
+      for (int hash_j = 0; hash_j < 3; ++hash_j) {
+        const auto hash = hashes[hash_j][element];
+        ASSERT_TRUE(std::binary_search(std::begin(hash_table[hash]),
+                                       std::end(hash_table[hash]), element));
+      }
+    }
+  }
+
+  const auto num_items_in_hash_table = std::transform_reduce(
+      std::begin(hash_table), std::end(hash_table), 0, std::plus<>{},
+      [](const auto& b) { return b.size(); });
+  ASSERT_EQ(num_items_in_hash_table, 3 * (1 << log_domain_size));
 }
 
 INSTANTIATE_TEST_SUITE_P(CuckooTestSuite, CuckooTest, testing::Range(5, 10));

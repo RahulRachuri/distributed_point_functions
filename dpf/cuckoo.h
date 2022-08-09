@@ -30,6 +30,8 @@ class Cuckoo {
 
   absl::StatusOr<std::vector<std::vector<absl::uint128>>> HashSimple(
       absl::Span<const absl::uint128> inputs) const;
+
+  // Hashes the entire domain with the 3 hash functions into buckets
   absl::StatusOr<std::vector<std::vector<absl::uint128>>> HashSimpleDomain(
       uint64_t domain_size) const;
 

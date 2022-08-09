@@ -62,7 +62,7 @@ MultiPointDistributedPointFunction::GenerateKeys(
   const auto value_type = parameters_.dpf_parameters().value_type();
   for (const auto& beta_i : betas) {
     DPF_RETURN_IF_ERROR(mp_proto_validator_->GetProtoValidator().ValidateValue(
-        beta_i, value_type));
+        beta_i, value_type)); // Checks that beta is a value of value_type
   }
 
   DPF_ASSIGN_OR_RETURN(auto cuckoo_table, cuckoo_context_->HashCuckoo(alphas));
