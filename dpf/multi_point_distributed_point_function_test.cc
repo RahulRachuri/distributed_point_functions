@@ -247,10 +247,10 @@ template <typename T>
 class MpDpfEvaluationTest : public ::testing::Test {
  protected:
   void SetUp() {
-    std::vector<absl::uint128> alphas = {0,  1,  13, 37,  42,
-                                         47, 69, 96, 116, 127};
+    std::vector<absl::uint128> alphas = {42,  1,  13}; //, 37,  42,
+                                         //47, 69, 96, 116, 127};
     //                                   ^ Lenny's numbers     ^ Rahy's numbers
-    SetUp(10, 7, absl::MakeSpan(alphas));
+    SetUp(3, 7, absl::MakeSpan(alphas));
   }
   void SetUp(int number_points, int log_domain_size,
              absl::Span<const absl::uint128> alphas) {
@@ -356,15 +356,21 @@ TYPED_TEST(MpDpfEvaluationTest, TestRegularDpf) {
   EXPECT_EQ(output_2.size(), 1 << this->log_domain_size_);
   for (int i = 0; i < (1 << this->log_domain_size_); ++i) {
     TypeParam sum = output_1[i] + output_2[i];
+    // check if i is one of the alpha_j's
     if (auto it =
             std::find(std::begin(this->alphas_), std::end(this->alphas_), i);
         it != std::end(this->alphas_)) {
+      // compute the index j of alpha_j in the array of alphas
       auto point_idx = std::distance(std::begin(this->alphas_), it);
-      // const auto alpha_i = *it;
-      const auto beta_i = this->betas_[point_idx];
-      EXPECT_EQ(sum, beta_i);
+      // const auto alpha_j = *it;
+      // find the corresponding beta_j
+      const auto beta_j = this->betas_[point_idx];
+      // check that alpha_j maps to beta_j
+      EXPECT_EQ(sum, beta_j) << "wrong value '" << sum << "' != '" << beta_j << "' at index " << i;
     } else {
-      EXPECT_EQ(sum, TypeParam{});
+      // i is not one of the alpha
+      // -> check that i maps to 0
+      EXPECT_EQ(sum, TypeParam{}) << "wrong value '" << sum << "' != 0 at index " << i;
     }
   }
 }

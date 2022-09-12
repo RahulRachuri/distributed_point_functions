@@ -49,6 +49,8 @@ uint64_t Cuckoo::ComputeNumberOfBuckets(uint64_t number_inputs) {
       log_number_inputs;
   auto e = (statSecParam - b) / a + 0.3;
 
+  // std::cerr << "buckets " << ceil(e * number_inputs) << "\n";
+
   // we have the statSecParam = a e + b, where e = |cuckoo|/|set| is the
   // expenation factor therefore we have that
   //
